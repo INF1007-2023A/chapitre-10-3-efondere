@@ -65,13 +65,13 @@ def sine(freq, amplitude, duration):
 
 def square(freq, amplitude, duration):
     # Générer une onde carrée d'une fréquence et amplitude donnée.
-    return np.sign(sine(freq, amplitude, duration))
+    return amplitude * np.sign(sine(freq, 1, duration))
 
 
 def sawtooth(freq, amplitude, duration):
     # Générer une onde en dents de scie (sawtooth) à partir de l'amplitude et fréquence donnée.
     t = generate_sample_time_points(duration)
-    y = amplitude * 2 * (t * freq - (0.5 + t * freq))
+    y = amplitude * 2 * (t * freq - np.floor(0.5 + t * freq))
     return y
 
 
@@ -79,7 +79,8 @@ def sine_with_overtones(root_freq, amplitude, overtones, duration):
     # Générer une onde sinusoïdale avec ses harmoniques. Le paramètre overtones est un dictionnaire où la clé est le multiple de la fondamentale et la valeur est l'amplitude relative de l'harmonique.
     y = sine(root_freq, amplitude, duration)
     for multiple, volume in overtones.items():
-        y += sine(root_freq * multiple, amplitude * volume, duration)
+        overtone = sine(root_freq * multiple, amplitude * volume, duration)
+        np.add(y, overtone, out=y)
 
     return y
 
@@ -113,13 +114,13 @@ def convert_to_bytes(samples):
     # Les échantillons en entrée sont entre -1 et 1, nous voulons les mettre entre -MAX_SAMPLE_VALUE et MAX_SAMPLE_VALUE
     # Juste pour être certain de ne pas avoir de problème, on doit clamper les valeurs d'entrée entre -1 et 1.
     clipped = np.clip(samples, -1, 1)
-    integer = (clipped * MAX_INT_SAMPLE_VALUE).astype("int16")
+    integer = (clipped * MAX_INT_SAMPLE_VALUE).astype("<i2")
     return integer.tobytes()
 
 
 def convert_to_samples(bytes):
     # Faire l'opération inverse de convert_to_bytes, en convertissant des échantillons entier 16 bits en échantillons réels
-    int_array = np.frombuffer(bytes)
+    int_array = np.frombuffer(bytes, dtype="<i2")
     return int_array.astype(float) / MAX_INT_SAMPLE_VALUE
 
 
